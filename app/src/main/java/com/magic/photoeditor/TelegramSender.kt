@@ -1,4 +1,4 @@
-package com.yourpackage.photoeditor
+package com.magic.photoeditor
 
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
