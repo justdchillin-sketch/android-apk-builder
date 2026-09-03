@@ -1,4 +1,4 @@
-package com.yourpackage.photoeditor
+package com.magic.photoeditor
 
 import android.Manifest
 import android.content.Intent
