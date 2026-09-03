@@ -1,4 +1,4 @@
-package com.yourpackage.photoeditor
+package com.magic.photoeditor
 
 object Config {
     const val BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
