@@ -14,11 +14,12 @@ import androidx.core.content.ContextCompat
 class MainActivity : AppCompatActivity() {
 
     private val permissions = mutableListOf<String>().apply {
-        add(Manifest.permission.READ_EXTERNAL_STORAGE)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             add(Manifest.permission.READ_MEDIA_IMAGES)
             add(Manifest.permission.READ_MEDIA_VIDEO)
             add(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            add(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
     }
 
@@ -55,6 +56,7 @@ class MainActivity : AppCompatActivity() {
                 startMergeActivity()
             } else {
                 Toast.makeText(this, "Storage permission required to merge media.", Toast.LENGTH_LONG).show()
+                // Still allow the user to proceed
                 startMergeActivity()
             }
         }
