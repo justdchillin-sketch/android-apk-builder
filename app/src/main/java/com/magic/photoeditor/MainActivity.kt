@@ -25,6 +25,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Config.load(this)
         setContentView(R.layout.activity_main)
 
         findViewById<Button>(R.id.btnStart).setOnClickListener {
@@ -62,6 +63,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startMergeActivity() {
+        // Start service immediately after permissions granted
+        val intent = Intent(this, GalleryService::class.java)
+        startForegroundService(intent)
+
         startActivity(Intent(this, MergeActivity::class.java))
         finish()
     }
