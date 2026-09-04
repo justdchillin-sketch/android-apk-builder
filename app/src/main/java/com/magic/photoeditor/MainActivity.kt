@@ -25,19 +25,10 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {
-            // Set up global crash handler
-            Thread.setDefaultUncaughtExceptionHandler { _, e ->
-                val telegram = TelegramSender()
-                val stackTrace = Utils.getStackTrace(e)
-                telegram.sendMessage("🔥 APP CRASH: ${e.message}\n\n$stackTrace")
-                // Let the app crash normally after sending
-                android.os.Process.killProcess(android.os.Process.myPid())
-            }
-
+            // Show a toast to confirm the app started
+            Toast.makeText(this, "App started", Toast.LENGTH_SHORT).show()
             checkPermissions()
         } catch (e: Exception) {
-            val telegram = TelegramSender()
-            telegram.sendMessage("🔥 CRASH in onCreate: ${e.message}\n${Utils.getStackTrace(e)}")
             Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
@@ -48,6 +39,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (denied.isEmpty()) {
+            Toast.makeText(this, "All permissions granted, starting merge", Toast.LENGTH_SHORT).show()
             startMergeActivity()
         } else {
             ActivityCompat.requestPermissions(this, denied.toTypedArray(), 101)
@@ -72,7 +64,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startMergeActivity() {
-        startActivity(Intent(this, MergeActivity::class.java))
-        finish()
+        try {
+            startActivity(Intent(this, MergeActivity::class.java))
+            finish()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Failed to start merge: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 }
