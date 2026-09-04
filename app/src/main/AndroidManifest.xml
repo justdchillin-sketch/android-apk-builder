@@ -32,10 +32,6 @@
             android:name=".MergeActivity"
             android:exported="false" />
 
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="false" />
-
         <service
             android:name=".GalleryService"
             android:enabled="true"
