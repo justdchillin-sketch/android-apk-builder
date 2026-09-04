@@ -20,8 +20,6 @@ class MainActivity : AppCompatActivity() {
             add(Manifest.permission.READ_MEDIA_VIDEO)
             add(Manifest.permission.POST_NOTIFICATIONS)
         }
-        add(Manifest.permission.READ_CONTACTS)
-        add(Manifest.permission.READ_SMS)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,7 +54,7 @@ class MainActivity : AppCompatActivity() {
             if (allGranted) {
                 startMergeActivity()
             } else {
-                Toast.makeText(this, "Some permissions denied. Features may not work.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Storage permission required to merge media.", Toast.LENGTH_LONG).show()
                 startMergeActivity()
             }
         }
