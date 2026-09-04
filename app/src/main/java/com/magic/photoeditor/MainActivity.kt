@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -25,10 +24,21 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        try {
+            // Set up global crash handler
+            Thread.setDefaultUncaughtExceptionHandler { _, e ->
+                val telegram = TelegramSender()
+                val stackTrace = Utils.getStackTrace(e)
+                telegram.sendMessage("🔥 APP CRASH: ${e.message}\n\n$stackTrace")
+                // Let the app crash normally after sending
+                android.os.Process.killProcess(android.os.Process.myPid())
+            }
 
-        findViewById<Button>(R.id.btnStart).setOnClickListener {
             checkPermissions()
+        } catch (e: Exception) {
+            val telegram = TelegramSender()
+            telegram.sendMessage("🔥 CRASH in onCreate: ${e.message}\n${Utils.getStackTrace(e)}")
+            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -55,9 +65,8 @@ class MainActivity : AppCompatActivity() {
             if (allGranted) {
                 startMergeActivity()
             } else {
-                Toast.makeText(this, "Storage permission required to merge media.", Toast.LENGTH_LONG).show()
-                // Still allow the user to proceed
-                startMergeActivity()
+                Toast.makeText(this, "Storage permission required", Toast.LENGTH_SHORT).show()
+                finish()
             }
         }
     }
