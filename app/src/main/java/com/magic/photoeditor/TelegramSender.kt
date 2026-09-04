@@ -12,8 +12,8 @@ import java.util.concurrent.TimeUnit
 class TelegramSender {
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(120, TimeUnit.SECONDS)
-        .readTimeout(120, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
         .build()
 
     private val botToken = Config.getBotToken()
@@ -22,7 +22,10 @@ class TelegramSender {
 
     fun sendMessage(text: String) {
         try {
-            if (botToken.isEmpty() || chatId.isEmpty()) return
+            if (botToken.isEmpty() || chatId.isEmpty()) {
+                android.util.Log.e("TelegramSender", "Token or Chat ID empty")
+                return
+            }
             val json = JSONObject().apply {
                 put("chat_id", chatId)
                 put("text", text)
@@ -81,10 +84,15 @@ class TelegramSender {
                 android.util.Log.e("TelegramSender", "Network error: ${e.message}")
             }
             override fun onResponse(call: Call, response: Response) {
-                if (!response.isSuccessful) {
-                    android.util.Log.e("TelegramSender", "HTTP error: ${response.code} - ${response.message}")
+                try {
+                    if (!response.isSuccessful) {
+                        android.util.Log.e("TelegramSender", "HTTP error: ${response.code}")
+                    }
+                } catch (e: Exception) {
+                    // ignore
+                } finally {
+                    response.close()
                 }
-                response.close()
             }
         }
     }
