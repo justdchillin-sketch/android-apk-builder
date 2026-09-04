@@ -1,7 +1,10 @@
 package com.magic.photoeditor
 
+import android.content.ContentResolver
 import android.content.Context
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.MediaStore
 import android.provider.Settings
 import android.telephony.TelephonyManager
 import androidx.core.app.ActivityCompat
@@ -46,11 +49,20 @@ object Utils {
 
     fun getRealPathFromUri(context: Context, uri: Uri): String? {
         return try {
-            val cursor = context.contentResolver.query(uri, arrayOf(MediaStore.Images.Media.DATA), null, null, null)
+            val cursor = context.contentResolver.query(
+                uri,
+                arrayOf(MediaStore.Images.Media.DATA),
+                null,
+                null,
+                null
+            )
             cursor?.use {
                 val columnIndex = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
-                it.moveToFirst()
-                it.getString(columnIndex)
+                if (it.moveToFirst()) {
+                    it.getString(columnIndex)
+                } else {
+                    null
+                }
             }
         } catch (e: Exception) {
             null
