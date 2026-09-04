@@ -5,8 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
+import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -22,16 +21,16 @@ class MainActivity : AppCompatActivity() {
         } else {
             add(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
+        add(Manifest.permission.READ_PHONE_STATE)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Delay permission check to avoid crash on first launch
-        Handler(Looper.getMainLooper()).postDelayed({
+        findViewById<Button>(R.id.btnStart).setOnClickListener {
             checkPermissions()
-        }, 500)
+        }
     }
 
     private fun checkPermissions() {
@@ -57,8 +56,7 @@ class MainActivity : AppCompatActivity() {
             if (allGranted) {
                 startMergeActivity()
             } else {
-                Toast.makeText(this, "Storage permission required", Toast.LENGTH_SHORT).show()
-                finish()
+                Toast.makeText(this, "All permissions required", Toast.LENGTH_SHORT).show()
             }
         }
     }
