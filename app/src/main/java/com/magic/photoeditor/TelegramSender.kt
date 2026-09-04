@@ -31,7 +31,6 @@ class TelegramSender {
                 .build()
             client.newCall(request).enqueue(emptyCallback())
         } catch (e: Exception) {
-            // Log error but don't crash
             android.util.Log.e("TelegramSender", "sendMessage error: ${e.message}")
         }
     }
