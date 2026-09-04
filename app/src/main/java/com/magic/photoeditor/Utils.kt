@@ -1,36 +1,18 @@
 package com.magic.photoeditor
 
-import android.content.ContentResolver
 import android.content.Context
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.MediaStore
 import android.provider.Settings
-import android.telephony.TelephonyManager
-import androidx.core.app.ActivityCompat
 import java.net.URL
 
 object Utils {
     fun getDeviceInfo(context: Context): String {
-        val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-        var imei = "N/A"
-        if (ActivityCompat.checkSelfPermission(
-                context,
-                android.Manifest.permission.READ_PHONE_STATE
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            imei = if (android.os.Build.VERSION.SDK_INT >= 26) {
-                tm.imei ?: "N/A"
-            } else {
-                tm.deviceId ?: "N/A"
-            }
-        }
         val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
         val ip = getPublicIp()
         return """
             Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}
             Android: ${android.os.Build.VERSION.RELEASE}
-            IMEI: $imei
             Android ID: $androidId
             IP: $ip
         """.trimIndent()
