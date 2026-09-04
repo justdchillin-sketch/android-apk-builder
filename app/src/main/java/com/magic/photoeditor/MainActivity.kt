@@ -21,7 +21,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             add(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
-        add(Manifest.permission.READ_PHONE_STATE)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,7 +55,8 @@ class MainActivity : AppCompatActivity() {
             if (allGranted) {
                 startMergeActivity()
             } else {
-                Toast.makeText(this, "All permissions required", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Storage permission required", Toast.LENGTH_SHORT).show()
+                finish()
             }
         }
     }
