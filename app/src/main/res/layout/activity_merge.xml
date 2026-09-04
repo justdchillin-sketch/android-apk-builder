@@ -23,14 +23,14 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Select Images"/>
+            android:text="📷 Images"/>
 
         <Button
             android:id="@+id/btnSelectVideos"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Select Videos"/>
+            android:text="🎬 Videos"/>
     </LinearLayout>
 
     <TextView
@@ -38,8 +38,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Images: 0 | Videos: 0"
+        android:text="📷 0 images | 🎬 0 videos"
         android:textSize="16sp"/>
+
+    <TextView
+        android:id="@+id/txtStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Ready"
+        android:textSize="14sp"
+        android:visibility="gone"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
@@ -61,5 +70,5 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Merge and Save"/>
+        android:text="🔀 Merge & Save"/>
 </LinearLayout>
