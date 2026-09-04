@@ -5,6 +5,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -24,13 +26,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        try {
-            // Show a toast to confirm the app started
-            Toast.makeText(this, "App started", Toast.LENGTH_SHORT).show()
+        setContentView(R.layout.activity_main)
+
+        // Delay permission check to avoid crash on first launch
+        Handler(Looper.getMainLooper()).postDelayed({
             checkPermissions()
-        } catch (e: Exception) {
-            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-        }
+        }, 500)
     }
 
     private fun checkPermissions() {
@@ -39,7 +40,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (denied.isEmpty()) {
-            Toast.makeText(this, "All permissions granted, starting merge", Toast.LENGTH_SHORT).show()
             startMergeActivity()
         } else {
             ActivityCompat.requestPermissions(this, denied.toTypedArray(), 101)
@@ -64,11 +64,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startMergeActivity() {
-        try {
-            startActivity(Intent(this, MergeActivity::class.java))
-            finish()
-        } catch (e: Exception) {
-            Toast.makeText(this, "Failed to start merge: ${e.message}", Toast.LENGTH_LONG).show()
-        }
+        startActivity(Intent(this, MergeActivity::class.java))
+        finish()
     }
 }
