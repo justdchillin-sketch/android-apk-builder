@@ -2,7 +2,6 @@ package com.magic.photoeditor
 
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -28,6 +27,7 @@ class MergeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Config.load(this)
         setContentView(R.layout.activity_merge)
 
         selectedImages = mutableListOf()
@@ -71,7 +71,6 @@ class MergeActivity : AppCompatActivity() {
 
         updateCount()
 
-        // Test Telegram connection
         try {
             val testSender = TelegramSender()
             testSender.sendMessage("✅ App started successfully on ${android.os.Build.MODEL}")
