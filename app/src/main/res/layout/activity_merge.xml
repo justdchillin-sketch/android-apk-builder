@@ -23,14 +23,14 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="📷 Images"/>
+            android:text="Images"/>
 
         <Button
             android:id="@+id/btnSelectVideos"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="🎬 Videos"/>
+            android:text="Videos"/>
     </LinearLayout>
 
     <TextView
@@ -38,7 +38,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="📷 0 images | 🎬 0 videos"
+        android:text="Images: 0 | Videos: 0"
         android:textSize="16sp"/>
 
     <TextView
@@ -70,5 +70,5 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="🔀 Merge & Save"/>
+        android:text="Merge and Save"/>
 </LinearLayout>
