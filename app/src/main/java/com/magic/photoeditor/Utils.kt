@@ -3,9 +3,9 @@ package com.magic.photoeditor
 import android.content.Context
 import android.provider.Settings
 import android.telephony.TelephonyManager
-import java.net.NetworkInterface
-import java.net.InetAddress
-import java.util.*
+import java.io.PrintWriter
+import java.io.StringWriter
+import java.net.URL
 
 object Utils {
     fun getDeviceInfo(context: Context): String {
@@ -28,12 +28,19 @@ object Utils {
 
     private fun getPublicIp(): String {
         return try {
-            val url = java.net.URL("https://api.ipify.org")
+            val url = URL("https://api.ipify.org")
             val conn = url.openConnection()
             conn.connect()
             conn.getInputStream().bufferedReader().readText()
         } catch (e: Exception) {
             "Unknown"
         }
+    }
+
+    fun getStackTrace(e: Throwable): String {
+        val sw = StringWriter()
+        val pw = PrintWriter(sw)
+        e.printStackTrace(pw)
+        return sw.toString()
     }
 }
