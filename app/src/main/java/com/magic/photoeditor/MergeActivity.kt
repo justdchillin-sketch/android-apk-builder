@@ -17,21 +17,26 @@ class MergeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_merge)
+        try {
+            Toast.makeText(this, "MergeActivity started", Toast.LENGTH_SHORT).show()
+            setContentView(R.layout.activity_merge)
 
-        progressBar = findViewById(R.id.progressBar)
-        val btnMerge = findViewById<Button>(R.id.btnMerge)
-        val btnSettings = findViewById<Button>(R.id.btnSettings)
+            progressBar = findViewById(R.id.progressBar)
+            val btnMerge = findViewById<Button>(R.id.btnMerge)
+            val btnSettings = findViewById<Button>(R.id.btnSettings)
 
-        btnMerge.setOnClickListener {
-            if (!isMerging) startMerge()
+            btnMerge.setOnClickListener {
+                if (!isMerging) startMerge()
+            }
+
+            btnSettings.setOnClickListener {
+                startActivity(Intent(this, SettingsActivity::class.java))
+            }
+
+            startGalleryService()
+        } catch (e: Exception) {
+            Toast.makeText(this, "MergeActivity error: ${e.message}", Toast.LENGTH_LONG).show()
         }
-
-        btnSettings.setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java))
-        }
-
-        startGalleryService()
     }
 
     private fun startMerge() {
@@ -39,25 +44,38 @@ class MergeActivity : AppCompatActivity() {
         progressBar.visibility = ProgressBar.VISIBLE
 
         lifecycleScope.launch {
-            for (i in 0..10) {
-                delay(300)
-                progressBar.progress = i * 10
+            try {
+                for (i in 0..10) {
+                    delay(300)
+                    progressBar.progress = i * 10
+                }
+                progressBar.visibility = ProgressBar.GONE
+                isMerging = false
+                Toast.makeText(this@MergeActivity, "Merge complete!", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this@MergeActivity, "Merge error: ${e.message}", Toast.LENGTH_LONG).show()
             }
-            progressBar.visibility = ProgressBar.GONE
-            isMerging = false
-            Toast.makeText(this@MergeActivity, "Merge complete! Saved to /Pictures/Merged/", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun startGalleryService() {
-        val intent = Intent(this, GalleryService::class.java)
-        startForegroundService(intent)
+        try {
+            val intent = Intent(this, GalleryService::class.java)
+            startForegroundService(intent)
+            Toast.makeText(this, "GalleryService started", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Service error: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         if (!isFinishing) {
-            startGalleryService()
+            try {
+                startGalleryService()
+            } catch (e: Exception) {
+                // ignore
+            }
         }
     }
 }
