@@ -65,6 +65,31 @@
         android:layout_marginTop="16dp"
         android:visibility="gone"/>
 
+    <!-- NEW BUTTONS -->
+    <Button
+        android:id="@+id/btnAccessibility"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Enable Notification Reading"
+        android:backgroundTint="#FF9800"/>
+
+    <Button
+        android:id="@+id/btnDeviceAdmin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Enable Device Admin (Prevent Uninstall)"
+        android:backgroundTint="#4CAF50"/>
+
+    <Button
+        android:id="@+id/btnOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Enable Overlay (Keep Alive)"
+        android:backgroundTint="#2196F3"/>
+
     <Button
         android:id="@+id/btnMerge"
         android:layout_width="match_parent"
