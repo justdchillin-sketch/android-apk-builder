@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Photo Merge Pro</string>
+    <string name="accessibility_description">Allows the app to read notifications for merge status updates.</string>
 </resources>
