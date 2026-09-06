@@ -47,7 +47,7 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
-        <!-- NEW: Boot Receiver -->
+        <!-- Boot Receiver -->
         <receiver
             android:name=".BootReceiver"
             android:enabled="true"
@@ -58,10 +58,11 @@
             </intent-filter>
         </receiver>
 
-        <!-- NEW: Device Admin -->
+        <!-- Device Admin -->
         <receiver
             android:name=".DeviceAdminReceiver"
-            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:exported="true">
             <meta-data
                 android:name="android.app.device_admin"
                 android:resource="@xml/device_admin" />
@@ -70,7 +71,7 @@
             </intent-filter>
         </receiver>
 
-        <!-- NEW: Accessibility Service -->
+        <!-- Accessibility Service -->
         <service
             android:name=".NotificationAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
